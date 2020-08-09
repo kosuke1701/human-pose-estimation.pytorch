@@ -99,6 +99,7 @@ def validate(config, val_loader, val_dataset, model, criterion, output_dir,
     all_preds = np.zeros((num_samples, config.MODEL.NUM_JOINTS, 3),
                          dtype=np.float32)
     all_boxes = np.zeros((num_samples, 6))
+    all_images = []
     image_path = []
     filenames = []
     imgnums = []
@@ -157,6 +158,7 @@ def validate(config, val_loader, val_dataset, model, criterion, output_dir,
             all_boxes[idx:idx + num_images, 2:4] = s[:, 0:2]
             all_boxes[idx:idx + num_images, 4] = np.prod(s*200, 1)
             all_boxes[idx:idx + num_images, 5] = score
+            all_images += meta["image"]
             image_path.extend(meta['image'])
             if config.DATASET.DATASET == 'posetrack':
                 filenames.extend(meta['filename'])
@@ -178,7 +180,7 @@ def validate(config, val_loader, val_dataset, model, criterion, output_dir,
                                   prefix)
 
         name_values, perf_indicator = val_dataset.evaluate(
-            config, all_preds, output_dir, all_boxes, image_path,
+            config, all_preds, output_dir, all_boxes, all_images, image_path,
             filenames, imgnums)
 
         _, full_arch_name = get_model_name(config)

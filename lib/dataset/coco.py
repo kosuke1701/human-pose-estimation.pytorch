@@ -65,6 +65,8 @@ class COCODataset(JointsDataset):
         self.pixel_std = 200
         self.coco = COCO(self._get_ann_file_keypoint())
 
+        self.fn2idx = {}
+
         # deal with class names
         cats = [cat['name']
                 for cat in self.coco.loadCats(self.coco.getCatIds())]
@@ -213,9 +215,11 @@ class COCODataset(JointsDataset):
 
     def image_path_from_index(self, index):
         """ example: images / train2017 / 000000119993.jpg """
-        file_name = '%012d.jpg' % index
-        if '2014' in self.image_set:
-            file_name = 'COCO_%s_' % self.image_set + file_name
+        # file_name = '%012d.jpg' % index
+        # if '2014' in self.image_set:
+        #     file_name = 'COCO_%s_' % self.image_set + file_name
+        im_ann = self.coco.loadImgs(index)[0]
+        file_name = im_ann["file_name"]
 
         prefix = 'test2017' if 'test' in self.image_set else self.image_set
 
@@ -224,6 +228,7 @@ class COCODataset(JointsDataset):
         image_path = os.path.join(
             self.root, 'images', data_name, file_name)
 
+        self.fn2idx[image_path] = index
         return image_path
 
     def _load_coco_person_detection_results(self):
@@ -270,7 +275,7 @@ class COCODataset(JointsDataset):
         return kpt_db
 
     # need double check this API and classes field
-    def evaluate(self, cfg, preds, output_dir, all_boxes, img_path,
+    def evaluate(self, cfg, preds, output_dir, all_boxes, all_images, img_path,
                  *args, **kwargs):
         res_folder = os.path.join(output_dir, 'results')
         if not os.path.exists(res_folder):
@@ -287,7 +292,7 @@ class COCODataset(JointsDataset):
                 'scale': all_boxes[idx][2:4],
                 'area': all_boxes[idx][4],
                 'score': all_boxes[idx][5],
-                'image': int(img_path[idx][-16:-4])
+                'image': self.fn2idx[all_images[idx]]#int(img_path[idx][-16:-4])
             })
         # image x person x (keypoints)
         kpts = defaultdict(list)
